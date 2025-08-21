@@ -13,7 +13,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/ai-agent-app
-  DOCKER_HUB_IMAGE: ${{ github.repository_owner }}/ai-agent-app
+  DOCKER_HUB_IMAGE: ${{ secrets.DOCKER_USERNAME }}/ai-agent-app
 
 jobs:
   build:
