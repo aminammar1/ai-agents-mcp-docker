@@ -1,0 +1,49 @@
+name: weekly-dependency-update
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      GIT_AUTHOR_NAME: dep-bot
+      GIT_AUTHOR_EMAIL: dep-bot@example.com
+      GIT_COMMITTER_NAME: dep-bot
+      GIT_COMMITTER_EMAIL: dep-bot@example.com
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PERSONAL_TOKEN }}
+      - name: set up python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: update requirements
+        run: |
+          pip install --upgrade pip pip-tools
+          pip install -r requirements.txt || true
+          pip freeze > requirements.new
+          cmp -s requirements.txt requirements.new || mv requirements.new requirements.txt
+      - name: create pr
+        if: success()
+        run: |
+          if git diff --quiet requirements.txt; then
+            echo no changes
+            exit 0
+          fi
+          branch=deps/update-$(date +%Y-%m-%d)
+          git checkout -b $branch
+          git add requirements.txt
+          git commit -m "update dependencies"
+          git push origin $branch
+          gh pr create --title "update dependencies" --body "automated weekly update" --base main || true
+        env:
+          GH_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
