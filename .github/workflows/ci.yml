@@ -13,6 +13,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/ai-agent-app
+  DOCKER_HUB_IMAGE: ${{ github.repository_owner }}/ai-agent-app
 
 jobs:
   build:
@@ -32,9 +33,15 @@ jobs:
         run: echo $PERSONAL_TOKEN | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
         env:
           PERSONAL_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+      - name: docker hub login
+        run: echo $DOCKER_TOKEN | docker login -u $DOCKER_USERNAME --password-stdin
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
       - name: build images
         run: |
           docker build -t $REGISTRY/$IMAGE_NAME:${{ github.sha }} .
+          docker build -t $DOCKER_HUB_IMAGE:${{ github.sha }} .
           docker compose build
       - name: push images
         if: github.ref == 'refs/heads/main'
@@ -42,6 +49,9 @@ jobs:
           docker tag $REGISTRY/$IMAGE_NAME:${{ github.sha }} $REGISTRY/$IMAGE_NAME:latest
           docker push $REGISTRY/$IMAGE_NAME:${{ github.sha }}
           docker push $REGISTRY/$IMAGE_NAME:latest
+          docker tag $DOCKER_HUB_IMAGE:${{ github.sha }} $DOCKER_HUB_IMAGE:latest
+          docker push $DOCKER_HUB_IMAGE:${{ github.sha }}
+          docker push $DOCKER_HUB_IMAGE:latest
       - name: docker compose up
         run: docker compose up -d
       - name: health check
